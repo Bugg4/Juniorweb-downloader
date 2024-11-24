@@ -44,8 +44,8 @@ jw_headers = {
 }
 
 jw_login_data = {
-    "user": cred.username,
-    "psw": cred.password,
+    "user": cred.USERNAME,
+    "psw": cred.PASSWORD,
     "db": "juniorweb",
     "language": "IT",
     "csrfp_token": "UNSET",  #! Will be set by login()
@@ -66,7 +66,7 @@ def login(
     response = session.post(login_url, headers=headers, data=data, allow_redirects=True)
 
     # Step 6: Validate login
-    if cred.username in response.html.text:
+    if cred.USERNAME in response.html.text:
         return (session, response)
     return (None, None)
 
