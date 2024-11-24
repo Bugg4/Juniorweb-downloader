@@ -49,34 +49,34 @@ jw_login_data = {
     "psw": cred.password,
     "db": "juniorweb",
     "language": "IT",
-    "csrfp_token": jw_session.cookies.get("csrfp_token"),
+    "csrfp_token": "UNSET",  #! Will be set by login()
 }
-
-
-def optional_file_download(response, filename: str):
-    if not SKIP_DOWNLOAD:
-        makedirs("data", exist_ok=True)
-        open(join("data", filename), "wb").write(response.content)
 
 
 def login(
     session: HTMLSession, login_url: str, headers: dict, data: dict
 ) -> tuple[HTMLSession, Response]:
     # Step 1: Get the login page
-    response = session.get(login_url, headers=headers, allow_redirects=True)
+    response = session.get(login_url)
     response.html.render()
+
+    # extraxt token from rendered page and add it to payload
+    data["csrfp_token"] = session.cookies.get("csrfp_token")
 
     # Step 5: Submit login request
     response = session.post(login_url, headers=headers, data=data, allow_redirects=True)
-    response.html.render()
-
-    print(response.html.text)
-    exit(0)
+    response.html.render
 
     # Step 6: Validate login
     if cred.username in response.html.text:
         return (session, response)
     return (None, None)
+
+
+def optional_file_download(response, filename: str):
+    if not SKIP_DOWNLOAD:
+        makedirs("data", exist_ok=True)
+        open(join("data", filename), "wb").write(response.content)
 
 
 def extract_live_file_list(
