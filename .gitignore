@@ -2,3 +2,4 @@
 .venv
 *cache*
 credentials.py
+file_list.json
