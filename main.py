@@ -6,8 +6,9 @@ import credentials as cred
 from time import sleep
 from os import makedirs
 from os.path import join, exists
-from utils import buffer_is_pdf, dump_json, list_difference_asymmetric
+from utils import buffer_is_pdf, difference_between_dict_lists
 import json
+from jsondiff import diff, patch
 
 """ 
 - get list of links from site
@@ -77,9 +78,9 @@ def optional_file_download(response, filename: str):
         open(join("data", filename), "wb").write(response.content)
 
 
-def extract_live_file_list(
+def extract_live_files(
     response_to_search_into: Response,
-) -> list[dict[str, str, bool, bool]]:
+):
     anchors = response_to_search_into.html.find("a")
     live_file_list = []
     for a in anchors:
@@ -107,43 +108,49 @@ if not jw_session:
     exit(1)
 
 
-live_file_list = []
-local_file_list = []
+live_file_list = None
+local_file_list = None
 
 if exists("file_list.json"):
     with open("file_list.json", "r") as f:
+        print("Loading list ...")
         local_file_list = json.load(f)
 
-else:
-    # create new file list if it doesn't exist
-    print("creating new list...")
 
-    live_file_list = extract_live_file_list(response)
+# create new file list if it doesn't exist
+print("creating new list...")
 
-    # isolate new files, so we can download only those
-    new_files = list_difference_asymmetric(live_file_list, local_file_list)
-    if not new_files:
-        print("Files already up to date.")
-        exit(0)
+live_file_list = extract_live_files(response)
 
-    for file_entry in new_files:
-        print(f"Downloading: {file_entry["file_name"]} ...")
-        response = jw_session.get(
-            file_entry["file_url"], headers=jw_headers, allow_redirects=True
-        )
+# isolate new files, so we can download only those
+new_files = difference_between_dict_lists(
+    live_file_list, local_file_list, keys=["file_name", "file_url"]
+)
 
-        is_pdf, mime_str = buffer_is_pdf(response.content)
+if not new_files:
+    print("Files already up to date.")
+    exit(0)
 
-        if is_pdf:
-            file_entry["is_valid_pdf"] = True
-            optional_file_download(response, file_entry["file_name"])
-            sleep(1.5)
-        else:
-            file_entry["is_valid_pdf"] = False
-            print(f"WARN: unknown file type. Expected PDF, got {mime_str} instead.")
-            optional_file_download(response, file_entry["file_name"])
-            sleep(1.5)
 
-        dump_json(live_file_list, "file_list.json")
+for file_entry in new_files:
+    print(f"Downloading: {file_entry["file_name"]} ...")
+    response = jw_session.get(
+        file_entry["file_url"], headers=jw_headers, allow_redirects=True
+    )
+
+    is_pdf, mime_str = buffer_is_pdf(response.content)
+
+    if is_pdf:
+        file_entry["is_valid_pdf"] = True
+        optional_file_download(response, file_entry["file_name"])
+        sleep(1.5)
+    else:
+        file_entry["is_valid_pdf"] = False
+        print(f"WARN: unknown file type. Expected PDF, got {mime_str} instead.")
+        optional_file_download(response, file_entry["file_name"])
+        sleep(1.5)
+
+    with open("file_list.json", "w") as f:
+        json.dump(live_file_list, f)
 
 print("Done.")
