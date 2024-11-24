@@ -65,7 +65,6 @@ def login(
 
     # Step 5: Submit login request
     response = session.post(login_url, headers=headers, data=data, allow_redirects=True)
-    response.html.render
 
     # Step 6: Validate login
     if cred.username in response.html.text:
