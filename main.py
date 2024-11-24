@@ -3,12 +3,11 @@ from requests import Response
 
 from urllib3 import disable_warnings, exceptions
 import credentials as cred
-from magic import from_buffer
 from time import sleep
 from os import makedirs
 from os.path import join, exists
+from utils import buffer_is_pdf, dump_json, list_difference_asymmetric
 import json
-
 
 """ 
 - get list of links from site
@@ -99,22 +98,6 @@ def extract_live_file_list(
                 }
             )
     return live_file_list
-
-
-def buffer_is_pdf(buffer) -> tuple[bool, str]:
-    detected_type: str = from_buffer(buffer)
-    return ("PDF document" in detected_type, detected_type)
-
-
-def dump_json(data, filepath: str):
-    with open(filepath, "w") as f:
-        json.dump(data, f)
-
-
-def list_difference_asymmetric(primary: list, secondary: list) -> list:
-    # return elements which are in primary but not in secondary
-    # returned list may be shuffled
-    return list(set(primary) - set(secondary))
 
 
 # Validate login
