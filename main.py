@@ -1,9 +1,7 @@
 import json
 import logging
-import os
 from os import makedirs
 from os.path import exists, join
-from sys import stdout
 from time import sleep
 
 from requests import Response
