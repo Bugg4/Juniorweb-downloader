@@ -7,7 +7,7 @@ def buffer_is_pdf(buffer) -> tuple[bool, str]:
     return ("PDF document" in detected_type, detected_type)
 
 
-def difference_between_dict_lists(primary, secondary, keys=None):
+def diff_dict_lists(primary, secondary, keys=None):
     """
     Returns a list of dictionaries that are in the primary list but not in the secondary list,
     considering only the specified keys for comparison.
