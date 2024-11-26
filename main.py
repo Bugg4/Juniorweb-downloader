@@ -94,8 +94,7 @@ def extract_live_files(
                 {
                     "file_name": file_name,
                     "file_url": file_url,
-                    "is_valid_pdf": None,
-                    "is_sent": None,
+                    "is_sent": False,
                 }
             )
     return live_file_list
@@ -141,11 +140,9 @@ for file_entry in new_files:
     is_pdf, mime_str = buffer_is_pdf(response.content)
 
     if is_pdf:
-        file_entry["is_valid_pdf"] = True
         optional_file_download(response, file_entry["file_name"])
         sleep(1.5)
     else:
-        file_entry["is_valid_pdf"] = False
         print(f"WARN: unknown file type. Expected PDF, got {mime_str} instead.")
         optional_file_download(response, file_entry["file_name"])
         sleep(1.5)
