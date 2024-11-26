@@ -1,17 +1,24 @@
-import logging
-from requests_html import HTMLSession
-from requests import Response
-from urllib3 import disable_warnings, exceptions
-import credentials as cred
-from time import sleep
-from os import makedirs
-from os.path import join, exists
-from utils import buffer_is_pdf, difference_between_dict_lists
 import json
+import logging
+import os
+from os import makedirs
+from os.path import exists, join
+from sys import stdout
+from time import sleep
+
+from requests import Response
+from requests_html import HTMLSession
+from urllib3 import disable_warnings, exceptions
+
+import config as conf
+import credentials as cred
+from utils import buffer_is_pdf, difference_between_dict_lists
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=conf.LOG_LEVEL.upper(),
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler(conf.LOG_FILE_NAME), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
