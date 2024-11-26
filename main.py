@@ -55,7 +55,6 @@ def login(
 ) -> tuple[HTMLSession, Response]:
     logger.info("Attempting to access the login page.")
     response = session.get(login_url)
-    response.html.render()
 
     # Extract token from rendered page and add it to payload
     data["csrfp_token"] = session.cookies.get("csrfp_token")
