@@ -62,10 +62,11 @@ def login(
     # Step 1: Get the login page
     logger.info("Attempting to access the login page.")
     response = session.get(login_url)
-    response.html.render()
+    # response.html.render()
 
     # Extract token from rendered page and add it to payload
     data["csrfp_token"] = session.cookies.get("csrfp_token")
+    logger.info(f"csrfp_token={data['csrfp_token']}")
 
     # Step 5: Submit login request
     logger.info("Submitting login request.")
