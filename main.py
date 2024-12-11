@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 disable_warnings(exceptions.InsecureRequestWarning)
 
 # Constants
-BASE_URL = "https://juniorweb.mastertech.it/juniorweb"
+COMPANY_NAME = cred.COMPANY
+BASE_URL = f"https://juniorweb.{COMPANY_NAME}.it/juniorweb"
 LOGIN_PAGE = f"{BASE_URL}/index.php"
 SKIP_DOWNLOAD = False
 DATA_DIR = "data"
@@ -35,9 +36,9 @@ jw_headers = {
     "Cache-Control": "max-age=0",
     "Connection": "keep-alive",
     "Content-Type": "application/x-www-form-urlencoded",
-    "Host": "juniorweb.mastertech.it",
-    "Origin": "https://juniorweb.mastertech.it",
-    "Referer": "https://juniorweb.mastertech.it/juniorweb/index.php",
+    "Host": f"juniorweb.{COMPANY_NAME}.it",
+    "Origin": f"https://juniorweb.{COMPANY_NAME}.it",
+    "Referer": f"https://juniorweb.{COMPANY_NAME}.it/juniorweb/index.php",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 }
 
