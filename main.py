@@ -64,6 +64,7 @@ def login(
     logger.info("Submitting login request.")
     response = session.post(login_url, headers=headers, data=data, allow_redirects=True)
 
+    # Simple check for successful login: if we find our username in the response html, assume we're logged in
     if cred.USERNAME in response.html.text:
         logger.info("Login successful.")
         return session, response
@@ -111,42 +112,43 @@ def save_file_list(file_list):
         json.dump(file_list, f)
 
 
-# Initialize a session
-jw_session = HTMLSession()
-jw_session.verify = False
+if __name__ == "__main__":
+    # Initialize a session
+    jw_session = HTMLSession()
+    jw_session.verify = False
 
-# Main script
-jw_session, response = login(jw_session, LOGIN_PAGE, jw_headers, jw_login_data)
-if not jw_session:
-    logger.error("Login failed. Exiting program.")
-    exit(1)
+    # Login to the Junior Web portal
+    jw_session, response = login(jw_session, LOGIN_PAGE, jw_headers, jw_login_data)
+    if not jw_session:
+        logger.error("Login failed. Exiting program.")
+        exit(1)
 
-local_file_list = load_local_file_list()
-live_file_list = extract_live_files(response)
+    local_file_list = load_local_file_list()
+    live_file_list = extract_live_files(response)
 
-# Isolate new files, so we can download only those
-new_files = diff_dict_lists(
-    live_file_list, local_file_list, keys=["file_name", "file_url"]
-)
-
-if not new_files:
-    logger.info("Files already up to date. No new files to download.")
-    exit(0)
-
-for file_entry in new_files:
-    response = jw_session.get(
-        file_entry["file_url"], headers=jw_headers, allow_redirects=True
+    # Isolate new files, so we can download only those
+    new_files = diff_dict_lists(
+        live_file_list, local_file_list, keys=["file_name", "file_url"]
     )
 
-    is_pdf, mime_str = buffer_is_pdf(response.content)
+    if not new_files:
+        logger.info("Files already up to date. No new files to download.")
+        exit(0)
 
-    if is_pdf:
-        optional_file_download(response, file_entry["file_name"])
-    else:
-        logger.warning(f"Unknown file type. Expected PDF, got {mime_str} instead.")
-        optional_file_download(response, file_entry["file_name"])
+    for file_entry in new_files:
+        response = jw_session.get(
+            file_entry["file_url"], headers=jw_headers, allow_redirects=True
+        )
 
-    sleep(1.5)
+        is_pdf, mime_str = buffer_is_pdf(response.content)
 
-save_file_list(live_file_list)
-logger.info("All tasks completed. Exiting program.")
+        if is_pdf:
+            optional_file_download(response, file_entry["file_name"])
+        else:
+            logger.warning(f"Unknown file type. Expected PDF, got {mime_str} instead.")
+            optional_file_download(response, file_entry["file_name"])
+
+        sleep(1.5)
+
+    save_file_list(live_file_list)
+    logger.info("All tasks completed. Exiting program.")
