@@ -151,4 +151,4 @@ if __name__ == "__main__":
         sleep(1.5)
 
     save_file_list(live_file_list)
-    logger.info("All tasks completed. Exiting program.")
+    logger.info("All tasks completed.")
