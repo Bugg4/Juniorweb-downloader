@@ -3,8 +3,5 @@
 requests==2.32.3
 requests-html==0.10.0
 urllib3==1.26.20
-
-WARNING(pigar): some manual fixes are required since pigar has found duplicate requirements for the same import name.
-# WARNING(pigar): the following duplicate requirements are for import name: magic
+lxml-html-clean==0.4.2
 python-magic==0.4.27
-python-magic-bin==0.4.14
