@@ -11,6 +11,7 @@ on:
 jobs:
   check-payroll:
     runs-on: ubuntu-latest
+    environment: Credentials
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
