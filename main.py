@@ -25,14 +25,26 @@ disable_warnings(exceptions.InsecureRequestWarning)
 
 # Constants
 COMPANY_NAME = os.getenv("COMPANY")
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
+NTFY_TOPIC = os.getenv("NTFY_TOPIC")
+
+# Validate environment variables
+missing_vars = []
+if not COMPANY_NAME: missing_vars.append("COMPANY")
+if not USERNAME: missing_vars.append("USERNAME")
+if not PASSWORD: missing_vars.append("PASSWORD")
+
+if missing_vars:
+    logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+    logger.error("Please ensure you have set these in your .env file or GitHub Secrets.")
+    exit(1)
+
 BASE_URL = f"https://juniorweb.{COMPANY_NAME}.it/juniorweb"
 LOGIN_PAGE = f"{BASE_URL}/index.php"
 SKIP_DOWNLOAD = False
 DATA_DIR = "data"
 FILE_LIST = "file_list.json"
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
-NTFY_TOPIC = os.getenv("NTFY_TOPIC")
 
 
 def send_notification(new_files):
