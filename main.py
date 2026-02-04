@@ -68,10 +68,10 @@ def send_notification(new_files):
                 f"https://ntfy.sh/{NTFY_TOPIC}",
                 data=file_content,
                 headers={
-                    "X-Title": "New Paycheck Downloaded",
+                    "X-Title": "Nuova busta Marco",
                     "X-Message": f"File: {filename}",
                     "X-Filename": filename,
-                    "X-Tags": "moneybag,page_facing_up"
+                    "X-Tags": "moneybag"
                 }
             )
             response.raise_for_status()
