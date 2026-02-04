@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from os import makedirs
+from os import makedirs, environ
 from os.path import exists, join
 from time import sleep
 from requests import Response, post
@@ -24,16 +24,17 @@ logger = logging.getLogger(__name__)
 disable_warnings(exceptions.InsecureRequestWarning)
 
 # Constants
-COMPANY_NAME = os.getenv("COMPANY")
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
-NTFY_TOPIC = os.getenv("NTFY_TOPIC")
+COMPANY_NAME = os.environ.get("COMPANY")
+USERNAME = os.environ.get("USERNAME")
+PASSWORD = os.environ.get("PASSWORD")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC")
 
 # Validate environment variables
 missing_vars = []
 if not COMPANY_NAME: missing_vars.append("COMPANY")
 if not USERNAME: missing_vars.append("USERNAME")
 if not PASSWORD: missing_vars.append("PASSWORD")
+if not NTFY_TOPIC: missing_vars.append("NTFY_TOPIC")
 
 if missing_vars:
     logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
