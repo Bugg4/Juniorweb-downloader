@@ -1,0 +1,39 @@
+name: Payroll Check
+
+on:
+  schedule:
+    # 09:00 UTC every Monday
+    - cron: '0 9 * * 1'
+    # 09:00 UTC every day from 10th to 20th of the month
+    - cron: '0 9 10-20 * *'
+  workflow_dispatch:
+
+jobs:
+  check-payroll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install python
+        run: uv python install
+
+      - name: Run Downloader
+        env:
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          COMPANY: ${{ secrets.COMPANY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          uv run main.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add file_list.json
+          # Only commit if there are changes
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update file list [skip ci]" && git push)

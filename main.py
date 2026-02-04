@@ -1,13 +1,17 @@
 import logging
 import json
+import os
 from os import makedirs
 from os.path import exists, join
 from time import sleep
-from requests import Response
+from requests import Response, post
 from requests_html import HTMLSession
 from urllib3 import disable_warnings, exceptions
-import credentials as cred
+from dotenv import load_dotenv
 from utils import buffer_is_pdf, diff_dict_lists
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -20,12 +24,63 @@ logger = logging.getLogger(__name__)
 disable_warnings(exceptions.InsecureRequestWarning)
 
 # Constants
-COMPANY_NAME = cred.COMPANY
+COMPANY_NAME = os.getenv("COMPANY")
 BASE_URL = f"https://juniorweb.{COMPANY_NAME}.it/juniorweb"
 LOGIN_PAGE = f"{BASE_URL}/index.php"
 SKIP_DOWNLOAD = False
 DATA_DIR = "data"
 FILE_LIST = "file_list.json"
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
+NTFY_TOPIC = os.getenv("NTFY_TOPIC")
+
+
+def send_notification(new_files):
+    if not NTFY_TOPIC:
+        logger.info("No NTFY_TOPIC set, skipping notification.")
+        return
+
+    if not new_files:
+        return
+
+    logger.info(f"Sending notifications for {len(new_files)} new files...")
+    
+    for file_entry in new_files:
+        filename = file_entry["file_name"]
+        file_path = join(DATA_DIR, filename)
+        
+        if not exists(file_path):
+            logger.warning(f"File {file_path} not found, sending notification without attachment.")
+            try:
+                post(f"https://ntfy.sh/{NTFY_TOPIC}", 
+                     data=f"Downloaded {filename} (but file not found locally)".encode("utf-8"),
+                     headers={"Title": "Juniorweb Download Error", "Tags": "warning"})
+            except Exception as e:
+                logger.error(f"Failed to send error notification: {e}")
+            continue
+
+        logger.info(f"Sending notification for {filename} with attachment...")
+        try:
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+                
+                response = post(
+                f"https://ntfy.sh/{NTFY_TOPIC}",
+                data=file_content,
+                headers={
+                    "X-Title": "New Paycheck Downloaded",
+                    "X-Message": f"File: {filename}",
+                    "X-Filename": filename,
+                    "X-Tags": "moneybag,page_facing_up"
+                }
+            )
+            response.raise_for_status()
+            logger.info(f"Notification for {filename} sent successfully.")
+        except Exception as e:
+            logger.error(f"Failed to send notification for {filename}: {e}")
+        
+        # Avoid rate limiting
+        sleep(1)
 
 
 # Headers for the requests
@@ -43,8 +98,8 @@ jw_headers = {
 }
 
 jw_login_data = {
-    "user": cred.USERNAME,
-    "psw": cred.PASSWORD,
+    "user": USERNAME,
+    "psw": PASSWORD,
     "db": "juniorweb",
     "language": "IT",
     "csrfp_token": "UNSET",  # Will be set by login()
@@ -65,7 +120,7 @@ def login(
     response = session.post(login_url, headers=headers, data=data, allow_redirects=True)
 
     # Simple check for successful login: if we find our username in the response html, assume we're logged in
-    if cred.USERNAME in response.html.text:
+    if USERNAME in response.html.text:
         logger.info("Login successful.")
         return session, response
     else:
@@ -151,4 +206,9 @@ if __name__ == "__main__":
         sleep(1.5)
 
     save_file_list(live_file_list)
+    
+    # Send notification if new files were downloaded
+    send_notification(new_files)
+    
     logger.info("All tasks completed.")
+
