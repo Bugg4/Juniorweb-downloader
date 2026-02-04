@@ -160,11 +160,11 @@ def extract_live_files(response: Response):
     live_file_list = [
         {
             "file_name": a.text,
-            "file_url": f"{BASE_URL}/{a.xpath('//a[@href]/@href')[0]}",
+            "file_url": f"{BASE_URL}/{a.attrs.get('href')}",
             "is_sent": False,
         }
         for a in anchors
-        if ".pdf" in a.text
+        if ".pdf" in a.text and "href" in a.attrs
     ]
     logger.info(f"Extracted {len(live_file_list)} live files.")
     return live_file_list
@@ -204,34 +204,40 @@ if __name__ == "__main__":
     for f in live_file_list:
         f['is_sent'] = local_sent_status.get(f['file_url'], False)
 
-    # Isolate new files, so we can download only those
-    new_files = diff_dict_lists(
-        live_file_list, local_file_list, keys=["file_name", "file_url"]
-    )
+    # Identify all files that need processing (either new or previously failed notification)
+    pending_files = [f for f in live_file_list if not f.get('is_sent')]
 
-    if not new_files:
+    if not pending_files:
         logger.info("Files already up to date. No new files to download.")
     else:
-        for file_entry in new_files:
-            response = jw_session.get(
-                file_entry["file_url"], headers=jw_headers, allow_redirects=True
-            )
+        logger.info(f"Found {len(pending_files)} files to process.")
+        for file_entry in pending_files:
+            file_path = join(DATA_DIR, file_entry["file_name"])
+            
+            # Check if file exists locally, download if missing
+            if not exists(file_path):
+                logger.info(f"File {file_entry['file_name']} not found locally. Downloading...")
+                response = jw_session.get(
+                    file_entry["file_url"], headers=jw_headers, allow_redirects=True
+                )
 
-            is_pdf, mime_str = buffer_is_pdf(response.content)
+                is_pdf, mime_str = buffer_is_pdf(response.content)
 
-            if is_pdf:
-                optional_file_download(response, file_entry["file_name"])
+                if is_pdf:
+                    optional_file_download(response, file_entry["file_name"])
+                else:
+                    logger.warning(f"Unknown file type. Expected PDF, got {mime_str} instead.")
+                    optional_file_download(response, file_entry["file_name"])
+
+                sleep(1.5)
             else:
-                logger.warning(f"Unknown file type. Expected PDF, got {mime_str} instead.")
-                optional_file_download(response, file_entry["file_name"])
-
-            sleep(1.5)
+                logger.info(f"File {file_entry['file_name']} already exists. Skipping download.")
 
     # Identify files that need notification (unsent)
-    files_to_notify = [f for f in live_file_list if not f.get('is_sent')]
-    
-    if files_to_notify:
-        sent_filenames = send_notification(files_to_notify)
+    # Re-evaluate pending_files or just use the same list, 
+    # but send_notification checks for file existence anyway.
+    if pending_files:
+        sent_filenames = send_notification(pending_files)
         # Update is_sent in live_file_list
         for f in live_file_list:
             if f['file_name'] in sent_filenames:
