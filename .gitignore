@@ -1,6 +1,5 @@
 *.pdf
 .venv
 *cache*
-credentials.py
 *.log
 .env
