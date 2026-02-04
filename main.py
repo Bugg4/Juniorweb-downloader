@@ -51,12 +51,13 @@ FILE_LIST = "file_list.json"
 def send_notification(new_files):
     if not NTFY_TOPIC:
         logger.info("No NTFY_TOPIC set, skipping notification.")
-        return
+        return []
 
     if not new_files:
-        return
+        return []
 
     logger.info(f"Sending notifications for {len(new_files)} new files...")
+    notified_filenames = []
     
     for file_entry in new_files:
         filename = file_entry["file_name"]
@@ -67,7 +68,8 @@ def send_notification(new_files):
             try:
                 post(f"https://ntfy.sh/{NTFY_TOPIC}", 
                      data=f"Downloaded {filename} (but file not found locally)".encode("utf-8"),
-                     headers={"Title": "Juniorweb Download Error", "Tags": "warning"})
+                     headers={"X-Title": "Juniorweb Download Error", "X-Tags": "warning"})
+                notified_filenames.append(filename)
             except Exception as e:
                 logger.error(f"Failed to send error notification: {e}")
             continue
@@ -89,11 +91,14 @@ def send_notification(new_files):
             )
             response.raise_for_status()
             logger.info(f"Notification for {filename} sent successfully.")
+            notified_filenames.append(filename)
         except Exception as e:
             logger.error(f"Failed to send notification for {filename}: {e}")
         
         # Avoid rate limiting
         sleep(1)
+    
+    return notified_filenames
 
 
 # Headers for the requests
@@ -194,6 +199,11 @@ if __name__ == "__main__":
     local_file_list = load_local_file_list()
     live_file_list = extract_live_files(response)
 
+    # Sync is_sent status from local to live
+    local_sent_status = {f['file_url']: f.get('is_sent', False) for f in local_file_list}
+    for f in live_file_list:
+        f['is_sent'] = local_sent_status.get(f['file_url'], False)
+
     # Isolate new files, so we can download only those
     new_files = diff_dict_lists(
         live_file_list, local_file_list, keys=["file_name", "file_url"]
@@ -201,27 +211,32 @@ if __name__ == "__main__":
 
     if not new_files:
         logger.info("Files already up to date. No new files to download.")
-        exit(0)
+    else:
+        for file_entry in new_files:
+            response = jw_session.get(
+                file_entry["file_url"], headers=jw_headers, allow_redirects=True
+            )
 
-    for file_entry in new_files:
-        response = jw_session.get(
-            file_entry["file_url"], headers=jw_headers, allow_redirects=True
-        )
+            is_pdf, mime_str = buffer_is_pdf(response.content)
 
-        is_pdf, mime_str = buffer_is_pdf(response.content)
+            if is_pdf:
+                optional_file_download(response, file_entry["file_name"])
+            else:
+                logger.warning(f"Unknown file type. Expected PDF, got {mime_str} instead.")
+                optional_file_download(response, file_entry["file_name"])
 
-        if is_pdf:
-            optional_file_download(response, file_entry["file_name"])
-        else:
-            logger.warning(f"Unknown file type. Expected PDF, got {mime_str} instead.")
-            optional_file_download(response, file_entry["file_name"])
+            sleep(1.5)
 
-        sleep(1.5)
+    # Identify files that need notification (unsent)
+    files_to_notify = [f for f in live_file_list if not f.get('is_sent')]
+    
+    if files_to_notify:
+        sent_filenames = send_notification(files_to_notify)
+        # Update is_sent in live_file_list
+        for f in live_file_list:
+            if f['file_name'] in sent_filenames:
+                f['is_sent'] = True
 
     save_file_list(live_file_list)
-    
-    # Send notification if new files were downloaded
-    send_notification(new_files)
-    
     logger.info("All tasks completed.")
 
