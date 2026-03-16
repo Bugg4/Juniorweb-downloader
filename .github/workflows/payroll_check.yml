@@ -2,10 +2,10 @@ name: Payroll Check
 
 on:
   schedule:
-    # 09:00 UTC every Monday
-    - cron: '0 9 * * 1'
-    # 09:00 UTC every day from 10th to 20th of the month
-    - cron: '0 9 10-20 * *'
+    # 17:00 UTC every Monday
+    - cron: '0 17 * * 1'
+    # 17:00 UTC every day from 10th to 20th of the month
+    - cron: '0 17 10-20 * *'
   workflow_dispatch:
 
 jobs:
